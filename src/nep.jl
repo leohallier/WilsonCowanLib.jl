@@ -330,6 +330,12 @@ function mder_λ(λ, k, p::WCL.LinearizationParams, solver=mslp)
 	return solver(mdernep, λ=λ)[1]
 end
 
+function mder_λs(k, p::WCL.LinearizationParams, solver=mslp)
+	mdernep = get_mder_nep(k, p)
+	eigs = get_eigvals(k, p)
+	return [solver(mdernep, λ=λ)[1] for λ in eigs]
+end
+
 function get_all_λ(lin_λs, ks, p::LinearizationParams, get_nonlinear_λ)
 	return [[get_nonlinear_λ(λ, k, p) for λ in λss] for (λss, k) in zip(lin_λs, ks)]
 end
