@@ -352,3 +352,8 @@ end
 function get_all_λ(ks, p::LinearizationParams, get_nonlinear_λ=mder_λ)
 	return get_all_λ([get_eigvals(k, p) for k in ks], ks, p, get_nonlinear_λ)
 end
+
+function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_range=(0, 3))
+	f = k -> mder_λs(k, p)
+	return sample_f(f, k_range[1], k_range[2], x->maximum(real.(x)), n_points=n_points)
+end
