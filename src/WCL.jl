@@ -6,5 +6,6 @@ include("util.jl")
 include("params.jl")
 include("integration.jl")
 include("nep.jl")
+include("computation.jl")
 
 end # module

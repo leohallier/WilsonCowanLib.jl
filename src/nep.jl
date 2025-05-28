@@ -25,9 +25,6 @@ end
 
 #todo what to call the matrix?
 struct LinearizationParams
-	n::Integer
-    spatial_resolution::Real
-	circumference::Real
     τ_e::Real
     τ_i::Real
     τ_a::Real
@@ -64,13 +61,35 @@ struct LinearizationParams
 	F_bar
 end
 
+function Base.hash(x::LinearizationParams, h::UInt)
+	h = hash(x.τ_e, h)
+	h = hash(x.τ_i, h)
+	h = hash(x.τ_a, h)
+	h = hash(x.w_ee, h)
+	h = hash(x.w_ei, h)
+	h = hash(x.w_ie, h)
+	h = hash(x.w_ii, h)
+	h = hash(x.b, h)
+	h = hash(x.I_e, h)
+	h = hash(x.I_i, h)
+	h = hash(x.γ_e, h)
+	h = hash(x.γ_i, h)
+	h = hash(x.γ_a, h)
+	h = hash(x.θ_e, h)
+	h = hash(x.θ_i, h)
+	h = hash(x.θ_a, h)
+	h = hash(x.σ_e, h)
+	h = hash(x.σ_i, h)
+	h = hash(x.m_d, h)
+	h = hash(x.d_0, h)
+	h = hash(x.fixed_point, h)
+	return h
+end
+
 function LinearizationParams(p::FullParams, fp_init)
 	fp = get_fixed_point(p, fp_init)
 
 	return LinearizationParams(
-		p.n,
-		p.spatial_resolution,
-		p.circumference,
 		p.τ_e,
 		p.τ_i,
 		p.τ_a,
@@ -353,7 +372,7 @@ function get_all_λ(ks, p::LinearizationParams, get_nonlinear_λ=mder_λ)
 	return get_all_λ([get_eigvals(k, p) for k in ks], ks, p, get_nonlinear_λ)
 end
 
-function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_range=(0, 3))
+function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
 	f = k -> mder_λs(k, p)
-	return sample_f(f, k_range[1], k_range[2], x->maximum(real.(x)), n_points=n_points)
+	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
 end
