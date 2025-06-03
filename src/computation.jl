@@ -20,7 +20,10 @@ function get_hash_string(x::CachedComputation)
     return string(hash(x), base=62)
 end
 
-function get_filename(x::CachedComputation)
+function get_file_path(x::CachedComputation)
+	if hasproperty(x, :filename) && !isnothing(x.filename)
+		return joinpath(get_data_path(x), x.filename)
+	end 
     return joinpath(get_data_path(x), get_hash_string(x)*".jld2")
 end
 
@@ -30,7 +33,7 @@ function store(x::CachedComputation)
 		compute!(x)
 		setfield!(x, :has_data, true)
 	end
-	path = get_filename(x)
+	path = get_file_path(x)
 	if isfile(path)
 		println("Overwriting in file "*path)
 	end
@@ -38,7 +41,7 @@ function store(x::CachedComputation)
 end
 
 function restore!(x::CachedComputation)
-	path = get_filename(x)
+	path = get_file_path(x)
 	data = load(path, "data")
 	transfer_data!(x, data)
 	x.has_data = true
@@ -48,14 +51,13 @@ end
 function compute! end
 
 function populate!(x::CachedComputation)
-	if !getfield(x, :has_data)
-		if isfile(get_filename(x))
+	if !x.has_data
+		if isfile(get_file_path(x))
 			restore!(x)
 		else
 			compute!(x)
 			store(x)
 		end
-		setfield!(x, :has_data, true)
 	end
 end
 
@@ -64,16 +66,22 @@ abstract type CachedIndexableComputation <: CachedComputation end
 function Base.getproperty(x::CachedIndexableComputation, s::Symbol)
 	if s === :data
 		populate!(x)
+		if !getfield(x, :has_data)
+			throw("No data was found and computation is turned off")
+		end
 	end
 	return getfield(x, s)
 end
 
 function store(x::CachedIndexableComputation)
-	if !getfield(x, :has_data)
+	if !x.has_data
+		if !x.should_compute
+			return
+		end
 		compute!(x)
-		setfield!(x, :has_data, true)
+		x.has_data = true
 	end
-	path = get_filename(x)
+	path = get_file_path(x)
 	if isfile(path)
 		println("Overwriting in file "*path)
 	end
@@ -82,7 +90,7 @@ function store(x::CachedIndexableComputation)
 end
 
 function restore!(x::CachedIndexableComputation)
-	path = get_filename(x)
+	path = get_file_path(x)
 	data = load(path, "data")
 	x.data = data
 	x.has_data = true
@@ -100,6 +108,9 @@ end
 
 function Base.getindex(x::CachedIndexableComputation, args...)
 	populate!(x)
+	if !x.has_data
+		throw("No data was found and computation is turned off")
+	end
 	getindex(x.data, args...)
 end
 
@@ -121,10 +132,11 @@ mutable struct EigenvalueSweep <: CachedIndexableComputation
     k_min::Real
     k_max::Real
     n_k_samples::Int
+	filename
 end
 
-function EigenvalueSweep(ps::Array{LinearizationParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true)
-	return EigenvalueSweep(ps, missing, false, should_compute, k_min, k_max, n_k_samples)
+function EigenvalueSweep(ps::Array{LinearizationParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true, filename=nothing)
+	return EigenvalueSweep(ps, missing, false, should_compute, k_min, k_max, n_k_samples, filename)
 end
 
 function Base.hash(x::EigenvalueSweep, h::UInt)
@@ -138,7 +150,7 @@ end
 
 function compute!(sweep::EigenvalueSweep)
 	if sweep.should_compute
-		@progress sweep.data = [WCL.get_all_λ(p, k_min=sweep.k_min, k_max=sweep.k_max) for p in sweep.ps]
+		sweep.data = [WCL.get_all_λ(p, k_min=sweep.k_min, k_max=sweep.k_max) for p in sweep.ps]
 		sweep.has_data = true
 	end
 end
