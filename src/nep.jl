@@ -376,3 +376,51 @@ function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
 	f = k -> mder_λs(k, p)
 	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
 end
+
+function λisless(a, b)
+	if real(a) < real(b)
+		return true
+	end
+	if real(a) > real(b)
+		return false
+	end
+	return imag(a) < imag(b)
+end
+
+function sort_λs(λs)
+	return sort(λs, lt=λisless, rev=true)
+end
+
+function consolidate(arr, equality_threshold=1e-15)
+	fps = []
+	for sp in arr
+		if !ismissing(sp)
+			is_new = true
+			for fp in fps
+				dist = sp - fp
+				dist = real(dot(dist, dist))
+				if dist < equality_threshold
+					is_new = false
+					break
+				end
+			end
+			if is_new
+				push!(fps, sp)
+			end
+		end
+	end
+	return sort_λs(fps)
+end
+
+function survey_λs(k, p, start_λs=[r + i*im for r in -2:0.5:3.0, i in 0.0:0.5:1.5])
+	λs = similar(start_λs, Union{Complex{Float64}, Missing})
+	nep = WCL.get_mder_nep(k, p)
+	for (i, start_λ) in enumerate(start_λs)
+		try
+			λs[i] = mslp(nep, λ=start_λ)[1]
+		catch
+			λs[i] = missing
+		end
+	end
+	return consolidate(λs)
+end
