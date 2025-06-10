@@ -55,8 +55,13 @@ function populate!(x::CachedComputation)
 		if isfile(get_file_path(x))
 			restore!(x)
 		else
+			if x.low_resolution
+				x.ps = [x.ps[i, j] for i in round.(Int, range(1, size(x.ps)[1], length=5)), j in round.(Int, range(1, size(x.ps)[2], length=5))]
+			end
 			compute!(x)
-			store(x)
+			if !x.low_resolution
+				store(x)
+			end
 		end
 	end
 end
@@ -74,6 +79,9 @@ function Base.getproperty(x::CachedIndexableComputation, s::Symbol)
 end
 
 function store(x::CachedIndexableComputation)
+	if !x.should_store
+		return
+	end
 	if !x.has_data
 		if !x.should_compute
 			return
@@ -128,15 +136,24 @@ mutable struct EigenvalueSweep <: CachedIndexableComputation
     ps::Array{LinearizationParams}
     data
     has_data::Bool
+	low_resolution::Bool
 	should_compute::Bool
+	should_store::Bool
     k_min::Real
     k_max::Real
     n_k_samples::Int
 	filename
 end
 
-function EigenvalueSweep(ps::Array{LinearizationParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true, filename=nothing)
-	return EigenvalueSweep(ps, missing, false, should_compute, k_min, k_max, n_k_samples, filename)
+function EigenvalueSweep(ps::Array{LinearizationParams, 2}; k_min=0, k_max=2.5, n_k_samples=40, low_resolution=false, should_compute=true, should_store=true, filename=nothing)
+	if low_resolution
+		return EigenvalueSweep(ps, missing, false, low_resolution, should_compute, false, k_min, k_max, n_k_samples, filename)
+	end
+	return EigenvalueSweep(ps, missing, false, low_resolution, should_compute, should_store, k_min, k_max, n_k_samples, filename)
+end
+
+function EigenvalueSweep(ps::Array{LinearizationParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true, should_store=true, filename=nothing)
+	return EigenvalueSweep(ps, missing, false, false, should_compute, should_store, k_min, k_max, n_k_samples, filename)
 end
 
 function Base.hash(x::EigenvalueSweep, h::UInt)
@@ -148,9 +165,11 @@ function Base.hash(x::EigenvalueSweep, h::UInt)
     return h
 end
 
-function compute!(sweep::EigenvalueSweep)
-	if sweep.should_compute
-		sweep.data = [WCL.get_all_λ(p, k_min=sweep.k_min, k_max=sweep.k_max) for p in sweep.ps]
-		sweep.has_data = true
+function compute!(x::EigenvalueSweep)
+	if x.should_compute || x.low_resolution
+		x.data = [WCL.get_all_λ(p, k_min=x.k_min, k_max=x.k_max) for p in x.ps]
+		x.has_data = true
+		println("computed")
+		return
 	end
 end
