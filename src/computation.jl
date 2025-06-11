@@ -1,6 +1,8 @@
 using FileIO
 using JLD2
+using Logging
 using ProgressLogging
+using TerminalLoggers
 
 function get_type_name(x)
     string(typeof(x).name.name)
@@ -167,9 +169,17 @@ end
 
 function compute!(x::EigenvalueSweep)
 	if x.should_compute || x.low_resolution
-		x.data = [WCL.get_all_λ(p, k_min=x.k_min, k_max=x.k_max) for p in x.ps]
+		if ! @isdefined PlutoRunner
+			global_logger(TerminalLogger())
+		end
+		@withprogress name="EigenvalueSweep $(x.filename)" begin
+			l = length(x.ps)
+			x.data = [begin
+				@logprogress i/l
+				WCL.get_all_λ(p, k_min=x.k_min, k_max=x.k_max)
+			end for (i, p) in enumerate(x.ps)]
+		end
 		x.has_data = true
-		println("computed")
 		return
 	end
 end
