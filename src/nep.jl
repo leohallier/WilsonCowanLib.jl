@@ -251,7 +251,9 @@ function get_eigvals(k, p::LinearizationParams)
 end
 
 function get_largest_real_part(λs)
-	return sort(λs, by=λ->real(λ), rev=true)[1]
+	filtered = filter(x->!ismissing(x), λs)
+	sort!(filtered, by=λ->real(λ), rev=true)
+	return length(filtered) > 0 ? filtered[1] : missing
 end
 
 function get_largest_real_part(k, p::LinearizationParams)
@@ -344,15 +346,31 @@ function get_mder_nep(k, p)
 	return Mder_NEP(3, (λ, derivative_oder) -> get_lin_der(λ, k, derivative_oder, p::WCL.LinearizationParams), maxder=1)
 end
 
-function mder_λ(λ, k, p::WCL.LinearizationParams, solver=mslp)
-	mdernep = get_mder_nep(k, p)
-	return solver(mdernep, λ=λ)[1]
+function trying_mslp(nep; λ)
+	try 
+		return mslp(nep, λ=λ)
+	catch e
+		println(e)
+		return missing
+	end
 end
 
-function mder_λs(k, p::WCL.LinearizationParams, solver=mslp)
+function get_to_λ(x)
+	if ismissing(x)
+		return x
+	end
+	return x[1]
+end
+
+function mder_λ(λ, k, p::WCL.LinearizationParams, solver=trying_mslp)
+	mdernep = get_mder_nep(k, p)
+	return get_to_λ(solver(mdernep, λ=λ))
+end
+
+function mder_λs(k, p::WCL.LinearizationParams, solver=trying_mslp)
 	mdernep = get_mder_nep(k, p)
 	eigs = get_eigvals(k, p)
-	return [solver(mdernep, λ=λ)[1] for λ in eigs]
+	return [get_to_λ(solver(mdernep, λ=λ)) for λ in eigs]
 end
 
 function get_all_λ(lin_λs, ks, p::LinearizationParams, get_nonlinear_λ)
