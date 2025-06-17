@@ -24,6 +24,7 @@ function newton_multidimensional(f, df, x_start, n_steps=100; history=nothing, p
 end
 
 #todo what to call the matrix?
+#todo remove F_i functions if they are not used
 struct LinearizationParams
     τ_e::Real
     τ_i::Real
@@ -87,7 +88,7 @@ function Base.hash(x::LinearizationParams, h::UInt)
 end
 
 function LinearizationParams(p::FullParams, fp_init)
-	fp = get_fixed_point(p, fp_init)
+	fp = get_bounded_fixed_point(p, fp_init)
 
 	return LinearizationParams(
 		p.τ_e,
@@ -207,6 +208,15 @@ function survey_fixed_points(params::FullParams; n_1d_samples=5, equality_thresh
 	end
 	sort!(fps)
 	return fps
+end
+
+function get_bounded_fixed_point(params::FullParams, u_start)
+	u = get_fixed_point(params, u_start)
+	if fp_in_range(u)
+		return u
+	end
+	us = survey_fixed_points(params)
+	return sort(us, by=x->abs(x[1]-u_start[1]))[1]
 end
 
 function get_F_bar(p::FullParams, fp)
