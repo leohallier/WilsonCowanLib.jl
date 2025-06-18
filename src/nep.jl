@@ -25,7 +25,7 @@ end
 
 #todo what to call the matrix?
 #todo remove F_i functions if they are not used
-struct LinearizationParams
+struct LinearizationParams <: AbstractParams
     τ_e::Real
     τ_i::Real
     τ_a::Real
@@ -165,7 +165,7 @@ function df_fixed_point(u, w, I, γ, θ)
 	return A*w - LinearAlgebra.I
 end
 
-function get_fixed_point(params::FullParams, u_start; history=nothing)
+function get_fixed_point(params::AbstractParams, u_start; history=nothing)
 	f(u) = f_fixed_point(u, params.w, params.I, params.γ, params.θ)
 	df(u) = df_fixed_point(u, params.w, params.I, params.γ, params.θ)
 
@@ -180,7 +180,7 @@ function fp_in_range(fp)
 	return between_zero_one(fp[1]) && between_zero_one(fp[2]) && between_zero_one(fp[3])
 end
 
-function survey_fixed_points(params::FullParams; n_1d_samples=5, equality_threshold=1e-15)
+function survey_fixed_points(params::AbstractParams; n_1d_samples=5, equality_threshold=1e-15)
 	resolution = 1/n_1d_samples
 	range = 0.0:resolution:1.0
 	start_points = [[ue, ui, ua] for ue in range for ui in range for ua in range]
@@ -210,7 +210,7 @@ function survey_fixed_points(params::FullParams; n_1d_samples=5, equality_thresh
 	return fps
 end
 
-function get_bounded_fixed_point(params::FullParams, u_start)
+function get_bounded_fixed_point(params::AbstractParams, u_start)
 	u = get_fixed_point(params, u_start)
 	if fp_in_range(u)
 		return u
@@ -219,11 +219,11 @@ function get_bounded_fixed_point(params::FullParams, u_start)
 	return sort(us, by=x->abs(x[1]-u_start[1]))[1]
 end
 
-function get_F_bar(p::FullParams, fp)
+function get_F_bar(p::AbstractParams, fp)
 	return Diagonal(F_sigmoidal_prime(p.w*fp + p.I, p.γ, p.θ))
 end
 
-function get_fw(p::FullParams, fp)
+function get_fw(p::AbstractParams, fp)
 	return get_F_bar(p, fp)*p.w
 end
 

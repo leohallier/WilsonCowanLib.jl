@@ -1,6 +1,8 @@
 
+abstract type AbstractParams end
+
 # contains all parameters for the continuous mathematical model and some extra redundant info for convenience
-struct FullParams
+struct FullParams <: AbstractParams
     n::Integer
     spatial_resolution::Real
     circumference::Real
@@ -36,7 +38,7 @@ struct FullParams
 end
 
 # contains all info needed to run a simulation using the code for DifferentialEquations.jl
-abstract type AbstractSolverParams end
+abstract type AbstractSolverParams <: AbstractParams end
 
 struct SolverParams <: AbstractSolverParams
     n::Int
