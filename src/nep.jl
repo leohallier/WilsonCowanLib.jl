@@ -405,6 +405,13 @@ function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
 	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
 end
 
+function get_max_λs(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
+	f = function (k)
+		return get_largest_real_part(mder_λs(k, p))
+	end
+	return sample_f(f, k_min, k_max, x->real.(x), n_points=n_points)
+end
+
 function λisless(a, b)
 	if real(a) < real(b)
 		return true

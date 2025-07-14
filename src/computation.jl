@@ -135,7 +135,7 @@ function Base.iterate(x::CachedIndexableComputation, a)
 end
 
 mutable struct EigenvalueSweep <: CachedIndexableComputation
-    ps::Array{LinearizationParams}
+    ps::Array{FullParams}
     data
     has_data::Bool
 	low_resolution::Bool
@@ -147,14 +147,14 @@ mutable struct EigenvalueSweep <: CachedIndexableComputation
 	filename
 end
 
-function EigenvalueSweep(ps::Array{LinearizationParams, 2}; k_min=0, k_max=2.5, n_k_samples=40, low_resolution=false, should_compute=true, should_store=true, filename=nothing)
+function EigenvalueSweep(ps::Array{FullParams, 2}; k_min=0, k_max=2.5, n_k_samples=40, low_resolution=false, should_compute=true, should_store=true, filename=nothing)
 	if low_resolution
 		return EigenvalueSweep(ps, missing, false, low_resolution, should_compute, false, k_min, k_max, n_k_samples, filename)
 	end
 	return EigenvalueSweep(ps, missing, false, low_resolution, should_compute, should_store, k_min, k_max, n_k_samples, filename)
 end
 
-function EigenvalueSweep(ps::Array{LinearizationParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true, should_store=true, filename=nothing)
+function EigenvalueSweep(ps::Array{FullParams}; k_min=0, k_max=2.5, n_k_samples=40, should_compute=true, should_store=true, filename=nothing)
 	return EigenvalueSweep(ps, missing, false, false, should_compute, should_store, k_min, k_max, n_k_samples, filename)
 end
 
@@ -167,18 +167,32 @@ function Base.hash(x::EigenvalueSweep, h::UInt)
     return h
 end
 
+function get_EigenvalueSweep_data(p::FullParams, k_min, k_max, n_points)
+	fps = survey_fixed_points(p)
+	return [(fp, get_max_λs(LinearizationParams(p, fp), k_min=k_min, k_max=k_max, n_points=n_points)) for fp in fps]
+end
+
 function compute!(x::EigenvalueSweep)
-	if x.should_compute || x.low_resolution
+	if getfield(x, :should_compute) || getfield(x, :low_resolution)
+		println("computing $(getfield(x, :filename))")
 		if ! @isdefined PlutoRunner
 			global_logger(TerminalLogger())
 		end
+		ps = getfield(x, :ps)
+		data = similar(ps, Any)
 		@withprogress name="EigenvalueSweep $(x.filename)" begin
-			l = length(x.ps)
-			x.data = [begin
-				@logprogress i/l
-				WCL.get_all_λ(p, k_min=x.k_min, k_max=x.k_max)
-			end for (i, p) in enumerate(x.ps)]
+			reentrant_lock = ReentrantLock()
+			l = length(ps)
+			n_done = 0
+			Threads.@threads for i in eachindex(ps)
+				data[i] = get_EigenvalueSweep_data(ps[i], getfield(x, :k_min), getfield(x, :k_max), getfield(x, :n_k_samples)) 
+				lock(reentrant_lock) do
+					n_done += 1
+					@logprogress n_done/l
+				end
+			end
 		end
+		x.data = data
 		x.has_data = true
 		return
 	end

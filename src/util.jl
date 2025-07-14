@@ -14,7 +14,7 @@ function solver_plot(solver_solution; kwargs...)
 end
 
 function plot_λ(x, y, params=nothing)
-	p = plot(x, y, xlabel="k", ylabel="Re(λ)")
+	p = plot(x, real.(y), xlabel="k", ylabel="Re(λ)")
     if !isnothing(params)
         p2 = twiny()
         plot!(p2, [k_to_n_peaks(k, params) for k in x], y, xlabel="n peaks", legend=false)

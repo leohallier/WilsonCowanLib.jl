@@ -48,3 +48,12 @@ function Base.getproperty(obj::EigenvalueKSweep, sym::Symbol)
 	end
 	return getfield(obj, sym)
 end
+
+#this tends to not give the maximum eigenvalue for k=0 
+function bad_get_max_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
+	f = function (k)
+		eigs = get_eigvals(k, p)
+		mder_λ(sort_λs(eigs)[1], k, p)
+	end
+	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
+end
