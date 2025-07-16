@@ -155,6 +155,47 @@ function get_max_ind(arr)
 	return curind
 end
 
+function find_instability_ranges(xs, ys; subtract=true)
+	if isa(ys[1], Array)
+		ys = WCL.get_largest_real_part.(ys)
+	end
+	ys = real.(ys)
+	if subtract && ys[1] > 0
+		y0 = ys[1]
+		ys .-= y0
+	end
+
+	result = []
+	cur_x = 0.0
+	greater_zero = ys[1] >= 0
+	for (i, y) in enumerate(ys)
+		if !greater_zero && y > 0
+			greater_zero = true
+			cur_x = xs[i] #linear interpolation would be nice
+		end
+		if greater_zero && y <= 0
+			greater_zero = false
+			if !(subtract && cur_x == xs[i])
+				push!(result, (cur_x, xs[i]))
+			end
+		end
+	end
+
+	return result
+end
+
+function get_turing_width_from_instability_ranges(ranges)
+	if length(ranges) == 0
+		return 0.0
+	end
+	range = ranges[end]
+	return range[2] - range[1]
+end
+
+function get_turing_width(xs, ys)
+	return get_turing_width_from_instability_ranges(find_instability_ranges(xs, ys; subtract=true))
+end
+
 function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	if !isnothing(fixed_point_selector)
 		data = [fixed_point_selector(el) for el in x.sweep.data]
@@ -167,8 +208,9 @@ function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	max_is = [get_max_ind(ls) for ls in maxs]
 	λmaxs = [ls[max_is[i]] for (i, ls) in enumerate(maxs)]
 	ks = [els[1][max_is[i]] for (i, els) in enumerate(data)]
+	widths = [get_turing_width(el...) for el in data]
 
-	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs)
+	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs, :turing_width=>widths)
 end
 
 function get_bounds(arrays, gettofunc=x->x)
