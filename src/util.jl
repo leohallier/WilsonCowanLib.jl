@@ -1,5 +1,12 @@
 using Plots
+using PyCall
 using PyPlot
+
+const ax_grid = PyNULL()
+
+function __init__()
+	copy!(ax_grid, pyimport("mpl_toolkits.axes_grid1"))
+end
 
 base_path = joinpath(homedir(), "Dropbox", "1Hausaufgaben", "Masterarbeit")
 data_path = joinpath(base_path, "data")
@@ -11,14 +18,14 @@ function solver_plot(solver_solution; kwargs...)
     end_t = solver_solution.t[end]
     solver_t = range(0, stop=end_t, length=500)
     solver_ue = solver_solution(solver_t, idxs=1:n)
-    return heatmap(solver_t, 1:size(solver_ue)[1], hcat(solver_ue.u...); clims=(0,1), kwargs...)
+    return Plots.heatmap(solver_t, 1:size(solver_ue)[1], hcat(solver_ue.u...); clims=(0,1), kwargs...)
 end
 
 function plot_λ(x, y, params=nothing)
-	p = plot(x, real.(y), xlabel="k", ylabel="Re(λ)")
+	p = Plots.plot(x, real.(y), xlabel="k", ylabel="Re(λ)")
     if !isnothing(params)
         p2 = twiny()
-        plot!(p2, [k_to_n_peaks(k, params) for k in x], y, xlabel="n peaks", legend=false)
+        Plots.plot!(p2, [k_to_n_peaks(k, params) for k in x], y, xlabel="n peaks", legend=false)
     end
 	return p
 end
@@ -26,9 +33,9 @@ end
 function plot_all_λ(x, ys, params=nothing; kwargs...)
     p = plot_λ(x, [real(y[1]) for y in ys], params)
     for i in 2:length(ys[2])
-        plot!(p, x, [real(y[i]) for y in ys])
+        Plots.plot!(p, x, [real(y[i]) for y in ys])
     end
-    plot!(; kwargs...)
+    Plots.plot!(; kwargs...)
     return p
 end
 
@@ -164,47 +171,11 @@ function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs)
 end
 
-function getBounds(arrays, no_overhang::Bool=false, gettofunc=x->x)
-	list_range = [i for i in 1:5]
-	changing = false
-	
-	maxs = [-Inf for i in list_range]
-	mins = [Inf for i in list_range]
-	for array in arrays
-		for val in gettofunc(array)
-			if !isnan(val) && !isinf(val)
-				for i in list_range
-					
-					if val > maxs[i]
-						changing = true
-						if i > 1
-							maxs[i-1] = maxs[i]
-						end
-						maxs[i] = val
-					end
-					if val < mins[i]
-						changing = true
-						if i > 1
-							mins[i-1] = mins[i]
-						end
-						mins[i] = val
-					end
-					if !changing
-						break
-					end
-				end
-			end
-		end
-	end
-	total_max = maxs[1]
-	total_min = mins[1]
-	if !no_overhang
-		dist = total_max - total_min
-		power = round(log10(dist)) - 1
-		total_max = ceil(total_max*10^(-power))*10^(power)
-		total_min = floor(total_min*10^(-power))*10^(power)
-	end
-	return (total_min, total_max)
+function get_bounds(arrays, gettofunc=x->x)
+	x = gettofunc.(arrays)
+	x = unique.(x)
+	x = vcat(x...)
+	return extrema(x)
 end
 
 function getPyCmap(bounds)
@@ -216,25 +187,28 @@ function getPyCmap(bounds)
 
 		splitmap = matplotlib.colors.LinearSegmentedColormap.from_list("splitmap",
 		[colors_periodic; colors_chaos])
-		# splitmap.set_bad(color="white", alpha=0.0)
 		return splitmap, norm
 	else
 		map = ColorMap("plasma")
-		# map.set_bad(color="white", alpha=0.0)
 		return map, matplotlib.colors.Normalize(vmin=bounds[1], vmax=bounds[2])
 	end
 end
 
-function split_plot(arr; title=nothing, xlabel=nothing, ylabel=nothing, extent=nothing, kwargs...)
+function split_plot!(ax, arr, linear_sweep, cmap, norm)
+	extent = (linear_sweep.y_range[1], linear_sweep.y_range[end], linear_sweep.x_range[1], linear_sweep.x_range[end])
+	return ax.imshow(arr, cmap=cmap, norm=norm, extent=extent, interpolation="none", origin="lower", aspect="auto")
+end
+
+function split_plot(arr; title=nothing, x_label=nothing, y_label=nothing, extent=nothing, kwargs...)
 	bounds = extrema(arr)
 	cmap = getPyCmap(bounds)
 	fig, ax = subplots()
 	im = ax.imshow(arr, cmap=cmap[1], norm=cmap[2], extent=extent, interpolation="none", origin="lower", aspect="auto"; kwargs...)
-	if !isnothing(xlabel)
-		ax.set_xlabel(xlabel)
+	if !isnothing(x_label)
+		ax.set_xlabel(x_label)
 	end
-	if !isnothing(ylabel)
-		ax.set_ylabel(ylabel)
+	if !isnothing(y_label)
+		ax.set_ylabel(y_label)
 	end
 	if !isnothing(title)
 		ax.set_title(title)
@@ -246,6 +220,36 @@ end
 
 function split_plot(arr, x::Linear2DSweep, title=nothing; kwargs...)
 	extent = (x.y_range[1], x.y_range[end], x.x_range[1], x.x_range[end])
-	return split_plot(arr; title=title, xlabel=string(x.y_param), ylabel=string(x.x_param), extent=extent, kwargs...)
+	return split_plot(arr; title=title, x_label=string(x.y_param), y_label=string(x.x_param), extent=extent, kwargs...)
 end
 
+function multi_plot(arrs, cmap=nothing)
+	if isnothing(cmap)
+		bounds = get_bounds([arr[1] for arr in arrs])
+		cmap, norm = getPyCmap(bounds)
+	else
+		cmap, norm = cmap
+	end
+
+	im = nothing
+	if (ndims(arrs) == 1)
+		n_cols = length(arrs)
+		n_rows = 1
+	else
+		n_cols, n_cols = size(arrs)
+	end
+
+	fig = plt.figure()
+	grd = ax_grid.AxesGrid(fig, 111, nrows_ncols=(n_rows, n_cols), axes_pad=0.05, cbar_mode="single", cbar_location="right", cbar_size=0.1, cbar_pad=0.1)
+
+	for (ax, arr) in zip(grd, arrs)
+		im = split_plot!(ax, arr[1], arr[2], cmap, norm)
+		if length(arr) >= 3
+			ax.set_title(arr[3])
+		end
+	end
+
+	matplotlib.colorbar.ColorbarBase(grd.cbar_axes[1], cmap=cmap, norm=norm)
+	
+	return fig
+end
