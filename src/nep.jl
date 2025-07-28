@@ -405,11 +405,33 @@ function get_all_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
 	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
 end
 
-function get_max_λs(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3)
+function remove_missing!(x, y)
+	l = length(x)
+	i = 1
+	while i <= l
+		if ismissing(y[i])
+			println("found missing at k=$(x[i])")
+			deleteat!(x, i)
+			deleteat!(y, i)
+			l -= 1
+		else
+			i += 1
+		end
+	end
+	return (x, y)
+end
+
+function get_max_λs(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3, remove_missing=true)
 	f = function (k)
 		return get_largest_real_part(mder_λs(k, p))
 	end
-	return sample_f(f, k_min, k_max, x->real.(x), n_points=n_points)
+	vals = sample_f(f, k_min, k_max, x->real.(x), n_points=n_points)
+
+	if remove_missing
+		return remove_missing!(vals...)
+	end
+	
+	return vals
 end
 
 function λisless(a, b)
