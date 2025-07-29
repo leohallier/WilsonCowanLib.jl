@@ -260,6 +260,10 @@ function get_eigvals(k, p::LinearizationParams)
 	return eigvals(get_linearization_no_delay(k, p))
 end
 
+function get_eigen(k, p::LinearizationParams)
+	return eigen(get_linearization_no_delay(k, p))
+end
+
 function get_largest_real_part(λs)
 	filtered = filter(x->!ismissing(x), λs)
 	sort!(filtered, by=λ->real(λ), rev=true)
@@ -435,6 +439,12 @@ function get_max_λs(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=3, 
 end
 
 function λisless(a, b)
+	if ismissing(a)
+		return true
+	end
+	if ismissing(b)
+		return false
+	end
 	if real(a) < real(b)
 		return true
 	end
