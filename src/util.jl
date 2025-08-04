@@ -1,58 +1,18 @@
-using Plots
-using PyCall
-using PyPlot
 
-const ax_grid = PyNULL()
-
-function __init__()
-	copy!(ax_grid, pyimport("mpl_toolkits.axes_grid1"))
+function is_pwd_data_path()
+	return splitpath(pwd())[end] == "data"
 end
 
-base_path = joinpath(homedir(), "Dropbox", "1Hausaufgaben", "Masterarbeit")
-data_path = joinpath(base_path, "data")
-ronja_path = joinpath(base_path, "adaptive-wilson-cowan-field")
-ronja_src_path = joinpath(ronja_path, "py")
-
-function solver_plot(solver_solution; kwargs...)
-    n = Int(length(solver_solution.u[1])/3)
-    end_t = solver_solution.t[end]
-    solver_t = range(0, stop=end_t, length=500)
-    solver_ue = solver_solution(solver_t, idxs=1:n)
-    return Plots.heatmap(solver_t, 1:size(solver_ue)[1], hcat(solver_ue.u...); clims=(0,1), kwargs...)
-end
-
-function plot_λ(x, y, params=nothing)
-	p = Plots.plot(x, real.(y), xlabel="k", ylabel="Re(λ)")
-    if !isnothing(params)
-        p2 = twiny()
-        Plots.plot!(p2, [k_to_n_peaks(k, params) for k in x], y, xlabel="n peaks", legend=false)
-    end
-	return p
-end
-
-function plot_all_λ(x, ys, params=nothing; kwargs...)
-    p = plot_λ(x, [real(y[1]) for y in ys], params)
-    for i in 2:length(ys[2])
-        Plots.plot!(p, x, [real(y[i]) for y in ys])
-    end
-    Plots.plot!(; kwargs...)
-    return p
-end
-
-function k_to_n_peaks(k, l::Real)
-	return l*k/(2*pi)
-end
-
-function k_to_n_peaks(k, p)
-	return k_to_n_peaks(k, p.circumference)
-end
-
-function n_peaks_to_k(n, l::Real)
-	return n*2*pi/l
-end
-
-function n_peaks_to_k(n, p)
-    return n_peaks_to_k(n, p.circumference)
+function set_wd_to_data_path()
+	if (is_pwd_data_path())
+		println("already in data directory $(pwd())")
+		return
+	end
+	data_path = joinpath("..", "data")
+	if (!isdir(data_path))
+		throw("could not find data path $(data_path)")
+	end
+	cd(data_path)
 end
 
 struct Sample
@@ -218,80 +178,4 @@ function get_bounds(arrays, gettofunc=x->x)
 	x = unique.(x)
 	x = vcat(x...)
 	return extrema(x)
-end
-
-function getPyCmap(bounds)
-	if bounds[1]<0 && bounds[2]>0
-		norm = matplotlib.colors.TwoSlopeNorm(vmin=bounds[1], vcenter=0, vmax=bounds[2])
-		is = range(0, stop=1, length=256)
-		colors_periodic = reverse(ColorMap("Reds")(is), dims=1)
-		colors_chaos = ColorMap("viridis")(is)
-
-		splitmap = matplotlib.colors.LinearSegmentedColormap.from_list("splitmap",
-		[colors_periodic; colors_chaos])
-		return splitmap, norm
-	else
-		map = ColorMap("plasma")
-		return map, matplotlib.colors.Normalize(vmin=bounds[1], vmax=bounds[2])
-	end
-end
-
-function split_plot!(ax, arr, linear_sweep, cmap, norm)
-	extent = (linear_sweep.y_range[1], linear_sweep.y_range[end], linear_sweep.x_range[1], linear_sweep.x_range[end])
-	return ax.imshow(arr, cmap=cmap, norm=norm, extent=extent, interpolation="none", origin="lower", aspect="auto")
-end
-
-function split_plot(arr; title=nothing, x_label=nothing, y_label=nothing, extent=nothing, kwargs...)
-	bounds = extrema(arr)
-	cmap = getPyCmap(bounds)
-	fig, ax = subplots()
-	im = ax.imshow(arr, cmap=cmap[1], norm=cmap[2], extent=extent, interpolation="none", origin="lower", aspect="auto"; kwargs...)
-	if !isnothing(x_label)
-		ax.set_xlabel(x_label)
-	end
-	if !isnothing(y_label)
-		ax.set_ylabel(y_label)
-	end
-	if !isnothing(title)
-		ax.set_title(title)
-	end
-	fig.colorbar(im, cmap=cmap[1], norm=cmap[2])
-
-	return fig
-end
-
-function split_plot(arr, x::Linear2DSweep, title=nothing; kwargs...)
-	extent = (x.y_range[1], x.y_range[end], x.x_range[1], x.x_range[end])
-	return split_plot(arr; title=title, x_label=string(x.y_param), y_label=string(x.x_param), extent=extent, kwargs...)
-end
-
-function multi_plot(arrs, cmap=nothing)
-	if isnothing(cmap)
-		bounds = get_bounds([arr[1] for arr in arrs])
-		cmap, norm = getPyCmap(bounds)
-	else
-		cmap, norm = cmap
-	end
-
-	im = nothing
-	if (ndims(arrs) == 1)
-		n_cols = length(arrs)
-		n_rows = 1
-	else
-		n_cols, n_cols = size(arrs)
-	end
-
-	fig = plt.figure()
-	grd = ax_grid.AxesGrid(fig, 111, nrows_ncols=(n_rows, n_cols), axes_pad=0.05, cbar_mode="single", cbar_location="right", cbar_size=0.1, cbar_pad=0.1)
-
-	for (ax, arr) in zip(grd, arrs)
-		im = split_plot!(ax, arr[1], arr[2], cmap, norm)
-		if length(arr) >= 3
-			ax.set_title(arr[3])
-		end
-	end
-
-	matplotlib.colorbar.ColorbarBase(grd.cbar_axes[1], cmap=cmap, norm=norm)
-	
-	return fig
 end

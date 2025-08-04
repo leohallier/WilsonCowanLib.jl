@@ -11,7 +11,7 @@ end
 abstract type CachedComputation end
 
 function get_data_path(x::CachedComputation)
-    return joinpath(data_path, get_type_name(x))
+    return joinpath(pwd(), get_type_name(x))
 end
 
 function get_index_file_name(x::CachedComputation)
