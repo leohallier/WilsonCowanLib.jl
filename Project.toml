@@ -1,7 +1,7 @@
 name = "WCL"
 uuid = "4d1c823b-78e8-417a-9a3d-f9eb7562ebf5"
 authors = ["Leonard Hallier <leonard.hallier@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
@@ -13,7 +13,6 @@ NonlinearEigenproblems = "067cfa3b-fa88-53b2-a873-5b23b3a16e31"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 TerminalLoggers = "5d786b92-1e48-4d6f-9151-6b4477ca9bed"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 FileIO = "1.17.0"
@@ -23,3 +22,9 @@ NonlinearEigenproblems = "1.1.1"
 ProgressLogging = "0.1.4"
 Random = "1.11.0"
 TerminalLoggers = "0.1.7"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
