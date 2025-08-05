@@ -38,11 +38,11 @@ function dx!(dx, x, h!, p, t)
 
     l_e = length(p.weights_e)
     l_i = length(p.weights_i)
-    for i in 2:max(l_e, l_i)
+    @inbounds for i in 2:max(l_e, l_i)
         n_node_steps = i-1  # distance between the nodes
         h!(p.past_x, p, t - p.d_0 - p.m*n_node_steps)  # get state at time minus delay
         if i <= l_e
-            for j in 1:p.n 
+            @inbounds for j in 1:p.n 
                 left_index = mod1(j-n_node_steps, p.n)
                 right_index = mod1(j+n_node_steps, p.n)
 
@@ -50,7 +50,7 @@ function dx!(dx, x, h!, p, t)
             end
         end
         if i <= l_i
-            for j in (p.n+1):(2*p.n)
+            @inbounds for j in (p.n+1):(2*p.n)
                 left_index = p.n+mod1(j-n_node_steps, p.n) #todo wait this seems wrong. j is not the index, it's n+index
                 right_index = p.n+mod1(j+n_node_steps, p.n)
 
