@@ -172,10 +172,3 @@ function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 
 	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs, :turing_width=>widths)
 end
-
-function get_bounds(arrays, gettofunc=x->x)
-	x = gettofunc.(arrays)
-	x = unique.(x)
-	x = vcat(x...)
-	return extrema(x)
-end
