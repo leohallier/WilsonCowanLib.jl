@@ -14,6 +14,14 @@ function get_data_path(x::CachedComputation)
     return joinpath(pwd(), get_type_name(x))
 end
 
+function make_data_path(x::CachedComputation)
+	path = get_data_path(x)
+	if !isdir(path)
+		mkdir(path)
+	end
+	return path
+end
+
 function get_index_file_name(x::CachedComputation)
     return joinpath(get_data_path(x), "index.jld2")
 end
@@ -39,6 +47,7 @@ function store(x::CachedComputation)
 	if isfile(path)
 		println("Overwriting in file "*path)
 	end
+	make_data_path(x)
 	jldsave(path, data=x)
 end
 
@@ -95,6 +104,7 @@ function store(x::CachedIndexableComputation)
 	if isfile(path)
 		println("Overwriting in file "*path)
 	end
+	make_data_path(x)
 	jldsave(path, data=x.data)
     println("saved "*path)
 end
