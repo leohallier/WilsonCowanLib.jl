@@ -65,12 +65,15 @@ function sample_f(f, x_min, x_max, y_converter=identity; n_points=20, min_dx=0.0
 	return ks, λs
 end
 
-function change_dict(d; kwargs...)
-	new_d = copy(d)
+function change_dict!(d; kwargs...)
 	for el in kwargs
-		new_d[el.first] = el.second
+		d[el.first] = el.second
 	end
-	return new_d
+	return d
+end
+
+function change_dict(d; kwargs...)
+	return change_dict!(copy(d))
 end
 
 struct Linear2DSweep
@@ -167,7 +170,8 @@ function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	maxs = [el[2] for el in data]
 	max_is = [get_max_ind(ls) for ls in maxs]
 	λmaxs = [ls[max_is[i]] for (i, ls) in enumerate(maxs)]
-	ks = [els[1][max_is[i]] for (i, els) in enumerate(data)]
+	# ks = [els[1][max_is[i]] for (i, els) in enumerate(data)]
+	ks = [real(els[2][max_is[i]]) >= 0 ? els[1][max_is[i]] : NaN for (i, els) in enumerate(data)]
 	widths = [get_turing_width(el...) for el in data]
 
 	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs, :turing_width=>widths)
