@@ -364,7 +364,7 @@ function trying_mslp(nep; λ)
 	try 
 		return mslp(nep, λ=λ)
 	catch e
-		println(e)
+		# println(e)
 		return missing
 	end
 end
