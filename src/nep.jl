@@ -347,7 +347,7 @@ function newton_λ(λ_start, k, p::LinearizationParams; max_iter=100, convergenc
 	return newton_λ(λ_start, k, p.τ, p.F_bar, p.σ_e, p.σ_i, p.d_0, p.m_d; max_iter=max_iter, convergence_threshold=convergence_threshold)
 end
 
-function get_lin_der(λ, k, order, p::WCL.LinearizationParams)
+function get_lin_der(λ, k, order, p::LinearizationParams)
 	if order == 0
 		return WCL.get_linearization(λ, k, p.τ, p.F_bar, p.σ_e, p.σ_i, p.d_0, p.m_d)
 	end
@@ -357,7 +357,7 @@ function get_lin_der(λ, k, order, p::WCL.LinearizationParams)
 end
 
 function get_mder_nep(k, p)
-	return Mder_NEP(3, (λ, derivative_oder) -> get_lin_der(λ, k, derivative_oder, p::WCL.LinearizationParams), maxder=1)
+	return Mder_NEP(3, (λ, derivative_oder) -> get_lin_der(λ, k, derivative_oder, p::LinearizationParams), maxder=1)
 end
 
 function trying_mslp(nep; λ)
@@ -479,7 +479,7 @@ function consolidate(arr, equality_threshold=1e-15)
 	return sort_λs(fps)
 end
 
-function survey_λs(k, p, start_λs=[r + i*im for r in -2:0.5:3.0, i in 0.0:0.5:1.5])
+function survey_λs(k, p::LinearizationParams, start_λs=[r + i*im for r in -2:0.5:3.0, i in 0.0:0.5:1.5])
 	λs = similar(start_λs, Union{Complex{Float64}, Missing})
 	nep = WCL.get_mder_nep(k, p)
 	for (i, start_λ) in enumerate(start_λs)
