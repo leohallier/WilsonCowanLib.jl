@@ -73,7 +73,7 @@ function change_dict!(d; kwargs...)
 end
 
 function change_dict(d; kwargs...)
-	return change_dict!(copy(d))
+	return change_dict!(copy(d); kwargs...)
 end
 
 struct Linear2DSweep
