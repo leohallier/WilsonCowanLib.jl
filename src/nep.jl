@@ -292,7 +292,10 @@ end
 function get_linearization_derivative(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)
 	c = exp(-λ*d_0)
 	
-	J_prime = Diagonal([c*j_prime(λ, k, σ_e, m_d), c*j_prime(λ, k, σ_i, m_d), 0.0])
+	J_prime = Diagonal([
+		c*(j_prime(λ, k, σ_e, m_d) - d_0*j(λ, k, σ_e, m_d)), 
+		c*(j_prime(λ, k, σ_i, m_d) - d_0*j(λ, k, σ_i, m_d)), 
+		0.0])
 	dM = Fw*J_prime - τ
 
 	return dM
