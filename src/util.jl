@@ -147,18 +147,6 @@ function find_instability_ranges(xs, ys; subtract=true)
 	return result
 end
 
-function get_turing_width_from_instability_ranges(ranges)
-	if length(ranges) == 0
-		return 0.0
-	end
-	range = ranges[end]
-	return range[2] - range[1]
-end
-
-function get_turing_width(xs, ys)
-	return get_turing_width_from_instability_ranges(find_instability_ranges(xs, ys; subtract=true))
-end
-
 function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	if !isnothing(fixed_point_selector)
 		data = [fixed_point_selector(el) for el in x.sweep.data]
@@ -172,7 +160,7 @@ function get_λ_data(x::Linear2DSweep, fixed_point_selector=nothing)
 	λmaxs = [ls[max_is[i]] for (i, ls) in enumerate(maxs)]
 	# ks = [els[1][max_is[i]] for (i, els) in enumerate(data)]
 	ks = [real(els[2][max_is[i]]) >= 0 ? els[1][max_is[i]] : NaN for (i, els) in enumerate(data)]
-	widths = [get_turing_width(el...) for el in data]
+	λ0s = [el[1] for el in maxs]
 
-	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs, :turing_width=>widths)
+	return Dict(:λ=>maxs, :k_max=>ks, :λ_max=>λmaxs, :λ_0=>λ0s)
 end
