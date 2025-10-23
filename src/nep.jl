@@ -359,7 +359,7 @@ function get_lin_der(λ, k, order, p::LinearizationParams)
 	end
 end
 
-function get_mder_nep(k, p)
+function get_mder_nep(k, p::LinearizationParams)
 	return Mder_NEP(3, (λ, derivative_oder) -> get_lin_der(λ, k, derivative_oder, p::LinearizationParams), maxder=1)
 end
 
