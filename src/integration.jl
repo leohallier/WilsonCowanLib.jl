@@ -32,9 +32,13 @@ end
 function dx!(dx, x, h!, p, t)
     # calculate convolution and store it in dx
     # start with non-delayed values
-    dx[1:p.n] = p.weights_e[1]*x[1:p.n]
-    dx[(p.n+1):(2*p.n)] = p.weights_i[1]*x[(p.n+1):(2*p.n)]
-    # dx[(2*n+1):end] = x[(2*n+1):end]  # don't need u_a if no vector operations are done
+
+    # start with self-coupling
+    h!(p.past_x, p, t - p.d_0)  # self-coupling with delay of d_0
+
+    dx[1:p.n] = p.weights_e[1]*p.past_x[1:p.n]
+    dx[(p.n+1):(2*p.n)] = p.weights_i[1]*p.past_x[(p.n+1):(2*p.n)]
+    # dx[(2*n+1):end] = p.past_x[(2*n+1):end]  # don't need u_a if no vector operations are done
 
     l_e = length(p.weights_e)
     l_i = length(p.weights_i)
@@ -51,7 +55,7 @@ function dx!(dx, x, h!, p, t)
         end
         if i <= l_i
             @inbounds for j in (p.n+1):(2*p.n)
-                left_index = p.n+mod1(j-n_node_steps, p.n) #todo wait this seems wrong. j is not the index, it's n+index
+                left_index = p.n+mod1(j-n_node_steps, p.n)
                 right_index = p.n+mod1(j+n_node_steps, p.n)
 
                 dx[j] += p.weights_i[i]*(p.past_x[right_index] + p.past_x[left_index])
@@ -59,7 +63,7 @@ function dx!(dx, x, h!, p, t)
         end
     end  # after this, dx should contain the convolution values
 
-    for i in 1:p.n
+    @inbounds for i in 1:p.n
         ie = i
         ii = i + p.n
         ia = i + 2*p.n

@@ -283,7 +283,7 @@ gauss(x, σ) = exp(-x^2/(2*σ^2))/(σ*sqrt(2*pi))
 """
     get_gaussian_kernel(spatial_resolution, σ[, threshold])
 
-Get an array that non-redundantly contains the Gaussian kernel K_`σ`(|x|) for x in [0, t]. The length of the array is chosen such that the all entries but the last one are bigger than `threshold`.
+Get an array that non-redundantly contains the Gaussian kernel w_`σ`(|x|)⋅Δ x for x in [0, t]. The length of the array is chosen such that the all entries but the last one are bigger than `threshold`.
 """
 function get_truncated_gaussian_kernel(spatial_resolution, σ, threshold=1e-10)
     threshold_dist = get_gaussian_extent(σ, spatial_resolution, threshold)
