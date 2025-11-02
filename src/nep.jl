@@ -127,6 +127,16 @@ function LinearizationParams(p::FullParams, fp_init)
 		get_fw(p, fp))
 end
 
+function get_most_interesting_fixed_point(p::AbstractParams)
+	fps = survey_fixed_points(p)
+	return get_most_interesting_fixed_point(fps, p.I_e)
+end
+
+function get_most_interesting_linearization_params(p::FullParams)
+	fp = get_most_interesting_fixed_point(p)
+	return LinearizationParams(p, fp)
+end
+
 function F_sigmoidal!(y::Vector, x::Vector, γ::Vector, θ::Vector)
 	for i in 1:3
 		y[i] = F_sigmoidal(x[i], γ[i], θ[i])
