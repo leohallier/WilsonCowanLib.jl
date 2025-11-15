@@ -1,8 +1,7 @@
 using LinearAlgebra
 
-#these tests are not complete. they almost fail for a broken version of get_linearization_derivative
 @testset "nonlinear eigenvalue problems" begin
-    p_no_delay = WCL.FullParams(; WCL.p_start..., m_d=0.0, d_0=0.0)
+    p_no_delay = WCL.FullParams(m_d=0.0, d_0=0.0)
     test_ks = [0.0, 0.5, 0.8, 1.3, π]
     
     @testset "no delay eigenvalues from nonlinear solver equal linear eigenvalues" begin
@@ -20,9 +19,9 @@ using LinearAlgebra
     end
 
     
-    p_1 = WCL.FullParams(; WCL.p_start..., m_d=1.5, d_0=0.0)
-    p_2 = WCL.FullParams(; WCL.p_start..., m_d=0.0, d_0=10.0)
-    p_3 = WCL.FullParams(; WCL.p_start..., m_d=1.5, d_0=10.0)
+    p_1 = WCL.FullParams(m_d=1.5, d_0=0.0)
+    p_2 = WCL.FullParams(m_d=0.0, d_0=10.0)
+    p_3 = WCL.FullParams(m_d=1.5, d_0=10.0)
 
     @testset "eigenvalues have det=0" begin
         for p in [p_no_delay, p_1, p_2, p_3]

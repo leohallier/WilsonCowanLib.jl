@@ -1,3 +1,4 @@
+export FullParams, SolverParams64
 
 abstract type AbstractParams end
 
@@ -303,18 +304,18 @@ end
 
 function FullParams(; 
     n=128, 
-    spatial_resolution=0.1,
+    spatial_resolution=0.625,
     circumference=nothing,
-    τ_e=1.0,
-    τ_i=1.5,
+    τ_e=10.0,
+    τ_i=15.0,
     τ_a=600.0,
     w_ee=3.2,
     w_ei=2.6,
     w_ie=3.3,
     w_ii=0.9,
-    b=0.25,
-    I_e=0.0,
-    I_i=0.0,
+    b=0.2,
+    I_e=0.4,
+    I_i=-0.1,
     γ_e=5.0,
     γ_i=5.0,
     γ_a=10.0,
@@ -325,10 +326,10 @@ function FullParams(;
     σ_i=3.0,
     m_d=nothing,
     d_0=nothing,
-    v_a=30.0,  # needs to be in same units as spatial resolution/membrane constant
-    v_d=5.0,
-    s=0.01, #todo think about reasonable value. Georg said dendritic delays are much smaller than axonal
-    z_0=0.01, #todo think about reasonable value
+    v_a=10.0,
+    v_d=1.0,
+    s=0.1,
+    z_0=0.1,
     )
 
     if isnothing(circumference)
@@ -464,6 +465,10 @@ function SolverParams64(p::FullParams; kernel_threshold=1e-10)
         p.weights_e,
         p.weights_i,
         p.past_x)
+end
+
+function SolverParams64(; kwargs...)
+    return SolverParams64(FullParams(; kwargs...))
 end
 
 function get_delays(m, d_0, n_delays)
