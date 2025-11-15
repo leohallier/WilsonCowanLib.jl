@@ -95,13 +95,6 @@ function Linear2DSweep(param_template, x_pair, y_pair; kwargs...)
 	return Linear2DSweep(s, x_param, x_range, y_param, y_range)
 end
 
-function get_most_interesting_fixed_point(arr, I_e)
-	if I_e > 0
-		return arr[1]
-	end
-	return arr[end]
-end
-
 function get_most_interesting_fixed_points(sweep)
 	return [get_most_interesting_fixed_point(el, p.I_e) for (p, el) in zip(sweep.ps, sweep.data)]
 end
