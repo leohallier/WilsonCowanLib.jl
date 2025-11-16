@@ -57,3 +57,55 @@ function bad_get_max_λ(p::WCL.LinearizationParams; n_points=40, k_min=0, k_max=
 	end
 	return sample_f(f, k_min, k_max, x->maximum(real.(x)), n_points=n_points)
 end
+
+
+# own eigenvalue solvers 
+
+function det_M(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)
+	M = get_linearization(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)
+	return det(M)
+end
+
+function det_M_fast(λ, k, τe, τi, τa, wee, wei, wie, wii, b, Fe_prime_bar, Fi_prime_bar, Fa_prime_bar, σ_e, σ_i, d_0, m_d)
+	c = exp(λ*d_0)
+	
+	Je = j(λ, k, σ_e, m_d)
+	Ji = j(λ, k, σ_i, m_d)
+
+	r = -b*c^(-2)*Fa_prime_bar*Fe_prime_bar*Je*(c*(1.0 + λ*τi) + Fi_prime_bar*wii*Ji) + (-1.0 - λ*τa)*(c^(-2)*Fe_prime_bar*Fi_prime_bar*wei*wie*Je*Ji + (-1.0 - λ*τe + 1.0/c*Fe_prime_bar*wee*Je)*(-1.0 - λ*τi - 1.0/c*Fi_prime_bar*wii*Ji))
+
+   return r
+end
+
+function dλ(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)
+	M_inv = inv(get_linearization(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)) # todo maybe calculate the inverse analytically?
+	return - 1.0/tr(M_inv*get_linearization_derivative(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d))
+end
+
+"""
+Solver from Güttel_nonlinear_eigenvalue paper
+
+	newton_λ(λ_start, k, τ, Fw, σ_e, σ_i, d_0, m_d; max_iter=100, convergence_threshold=1e-10)
+"""
+function newton_λ(λ_start, k, τ, Fw, σ_e, σ_i, d_0, m_d; max_iter=100, convergence_threshold=1e-10)
+	λ = λ_start
+
+	for i in 1:max_iter
+		try
+			cur_dλ = dλ(λ, k, τ, Fw, σ_e, σ_i, d_0, m_d)
+			λ += cur_dλ
+
+			if abs(cur_dλ) < convergence_threshold
+				return λ
+			end
+		catch e
+			return NaN
+		end
+	end
+
+	return NaN
+end
+
+function newton_λ(λ_start, k, p::LinearizationParams; max_iter=100, convergence_threshold=1e-10)
+	return newton_λ(λ_start, k, p.τ, p.F_bar, p.σ_e, p.σ_i, p.d_0, p.m_d; max_iter=max_iter, convergence_threshold=convergence_threshold)
+end

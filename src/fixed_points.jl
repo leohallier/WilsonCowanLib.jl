@@ -1,4 +1,4 @@
-export survey_fixed_points
+export survey_fixed_points, get_most_interesting_linearization_params
 
 function newton_multidimensional(f, df, x_start, n_steps=100; history=nothing, print_end=false)
 	x = copy(x_start)
