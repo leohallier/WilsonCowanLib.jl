@@ -1,7 +1,7 @@
 name = "WCL"
 uuid = "4d1c823b-78e8-417a-9a3d-f9eb7562ebf5"
 authors = ["Leonard Hallier <leonard.hallier@gmail.com>"]
-version = "0.6.0"
+version = "1.0.0"
 
 [deps]
 DelayDiffEq = "bcd4f6db-9728-5f36-b5f7-82caef46ccdb"
